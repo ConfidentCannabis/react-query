@@ -128,7 +128,7 @@ function mutationReducer<TResult, TError>(
   }
 }
 
-interface IVariables {
+export interface IVariables {
   _key?: string
 }
 
