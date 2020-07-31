@@ -1889,6 +1889,238 @@
     })];
   }
 
+  function _await$2(value, then, direct) {
+    if (direct) {
+      return then ? then(value) : value;
+    }
+
+    if (!value || !value.then) {
+      value = Promise.resolve(value);
+    }
+
+    return then ? value.then(then) : value;
+  }
+
+  var ActionType$2;
+
+  function _catch$4(body, recover) {
+    try {
+      var result = body();
+    } catch (e) {
+      return recover(e);
+    }
+
+    if (result && result.then) {
+      return result.then(void 0, recover);
+    }
+
+    return result;
+  }
+
+  function _async$2(f) {
+    return function () {
+      for (var args = [], i = 0; i < arguments.length; i++) {
+        args[i] = arguments[i];
+      }
+
+      try {
+        return Promise.resolve(f.apply(this, args));
+      } catch (e) {
+        return Promise.reject(e);
+      }
+    };
+  }
+
+  (function (ActionType) {
+    ActionType["Reset"] = "Reset";
+    ActionType["Loading"] = "Loading";
+    ActionType["Resolve"] = "Resolve";
+    ActionType["Reject"] = "Reject";
+  })(ActionType$2 || (ActionType$2 = {}));
+
+  // HOOK
+  // const getDefaultState = (): KeyedState<any, any> => ({
+  //   ...getStatusProps(QueryStatus.Idle),
+  //   data: undefined,
+  //   error: null,
+  // })
+  var getDefaultState2 = function getDefaultState2() {
+    return {
+      keyed: {}
+    };
+  };
+
+  function mutationReducer$1(state, action) {
+    var _extends2, _extends3, _extends4;
+
+    switch (action.type) {
+      case ActionType$2.Reset:
+        if (action._key) {
+          var newState = _extends({}, state.keyed);
+
+          delete newState[action._key];
+          return {
+            keyed: newState
+          };
+        } else {
+          return {
+            keyed: {}
+          };
+        }
+
+      case ActionType$2.Loading:
+        return {
+          keyed: _extends({}, state.keyed, (_extends2 = {}, _extends2[action._key] = _extends({}, getStatusProps(exports.QueryStatus.Loading), {
+            data: undefined,
+            error: null
+          }), _extends2))
+        };
+
+      case ActionType$2.Resolve:
+        return {
+          keyed: _extends({}, state.keyed, (_extends3 = {}, _extends3[action._key] = _extends({}, getStatusProps(exports.QueryStatus.Success), {
+            data: action.data,
+            error: null
+          }), _extends3))
+        };
+
+      case ActionType$2.Reject:
+        return {
+          keyed: _extends({}, state.keyed, (_extends4 = {}, _extends4[action._key] = _extends({}, getStatusProps(exports.QueryStatus.Error), {
+            data: undefined,
+            error: action.error
+          }), _extends4))
+        };
+
+      default:
+        return state;
+    }
+  }
+
+  function useKeyedMutation(mutationFn, config) {
+    if (config === void 0) {
+      config = {};
+    }
+
+    var _React$useReducer = React.useReducer(mutationReducer$1, null, getDefaultState2),
+        state = _React$useReducer[0],
+        unsafeDispatch = _React$useReducer[1];
+
+    var dispatch = useMountedCallback(unsafeDispatch);
+    var getMutationFn = useGetLatest(mutationFn);
+    var contextConfig = useConfigContext();
+    var getConfig = useGetLatest(_extends({}, contextConfig.shared, contextConfig.mutations, config));
+    var latestMutationRef = React.useRef();
+    var mutate = React.useCallback(_async$2(function (variables, mutateConfig) {
+      if (mutateConfig === void 0) {
+        mutateConfig = {};
+      }
+
+      if (!variables) {
+        console.error('keyed mutations require variables');
+        return;
+      }
+
+      var config = getConfig();
+      var mutationId = uid();
+      latestMutationRef.current = mutationId;
+
+      var isLatest = function isLatest() {
+        return latestMutationRef.current === mutationId;
+      };
+
+      var snapshotValue;
+      return _catch$4(function () {
+        var loadingAction = {
+          type: ActionType$2.Loading
+        };
+
+        if (variables && variables._key !== undefined) {
+          loadingAction._key = variables._key;
+        }
+
+        dispatch(loadingAction);
+        return _await$2(config.onMutate == null ? void 0 : config.onMutate(variables), function (_config$onMutate) {
+          snapshotValue = _config$onMutate;
+          return _await$2(getMutationFn()(variables), function (data) {
+            if (isLatest()) {
+              var resolveAction = {
+                type: ActionType$2.Resolve,
+                data: data
+              };
+
+              if (variables && variables._key) {
+                resolveAction._key = variables._key;
+              }
+
+              dispatch(resolveAction);
+            }
+
+            return _await$2(config.onSuccess == null ? void 0 : config.onSuccess(data, variables), function () {
+              return _await$2(mutateConfig.onSuccess == null ? void 0 : mutateConfig.onSuccess(data, variables), function () {
+                return _await$2(config.onSettled == null ? void 0 : config.onSettled(data, null, variables), function () {
+                  return _await$2(mutateConfig.onSettled == null ? void 0 : mutateConfig.onSettled(data, null, variables), function () {
+                    return data;
+                  });
+                });
+              });
+            });
+          });
+        });
+      }, function (error) {
+        Console.error(error);
+        return _await$2(config.onError == null ? void 0 : config.onError(error, variables, snapshotValue), function () {
+          return _await$2(mutateConfig.onError == null ? void 0 : mutateConfig.onError(error, variables, snapshotValue), function () {
+            return _await$2(config.onSettled == null ? void 0 : config.onSettled(undefined, error, variables, snapshotValue), function () {
+              return _await$2(mutateConfig.onSettled == null ? void 0 : mutateConfig.onSettled(undefined, error, variables, snapshotValue), function () {
+                var _mutateConfig$throwOn;
+
+                if (isLatest()) {
+                  var rejectAction = {
+                    type: ActionType$2.Reject,
+                    error: error
+                  };
+
+                  if (variables && variables._key !== undefined) {
+                    rejectAction._key = variables._key;
+                  }
+
+                  dispatch(rejectAction);
+                }
+
+                if ((_mutateConfig$throwOn = mutateConfig.throwOnError) != null ? _mutateConfig$throwOn : config.throwOnError) {
+                  throw error;
+                }
+              });
+            });
+          });
+        });
+      });
+    }), [dispatch, getConfig, getMutationFn]);
+    var reset = React.useCallback(function (_key) {
+      var resetAction = {
+        type: ActionType$2.Reset
+      };
+
+      if (_key !== undefined) {
+        resetAction._key = _key;
+      }
+
+      dispatch(resetAction);
+    }, [dispatch]); // ignore using this for now - @jaredpetker
+    // React.useEffect(() => {
+    //   const { suspense, useErrorBoundary } = getConfig()
+    //
+    //   if ((useErrorBoundary ?? suspense) && state.error) {
+    //     throw state.error
+    //   }
+    // }, [getConfig, state.error])
+
+    return [mutate, _extends({}, state, {
+      reset: reset
+    })];
+  }
+
   function useBaseQuery(queryKey, config) {
     if (config === void 0) {
       config = {};
@@ -2083,6 +2315,7 @@
   exports.stableStringify = stableStringify;
   exports.useInfiniteQuery = useInfiniteQuery;
   exports.useIsFetching = useIsFetching;
+  exports.useKeyedMutation = useKeyedMutation;
   exports.useMutation = useMutation;
   exports.usePaginatedQuery = usePaginatedQuery;
   exports.useQuery = useQuery;

@@ -132,7 +132,7 @@ interface IVariables {
   _key?: string
 }
 
-export function useMutation<
+export function useKeyedMutation<
   TResult,
   TError = unknown,
   TVariables extends IVariables | undefined = undefined,

@@ -8,6 +8,7 @@ export {
 export { ReactQueryConfigProvider } from './ReactQueryConfigProvider'
 export { useIsFetching } from './useIsFetching'
 export { useMutation } from './useMutation'
+export { useKeyedMutation } from './useKeyedMutation'
 export { useQuery } from './useQuery'
 export { usePaginatedQuery } from './usePaginatedQuery'
 export { useInfiniteQuery } from './useInfiniteQuery'
