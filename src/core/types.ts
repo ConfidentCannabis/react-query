@@ -194,6 +194,24 @@ export interface MutationResult<TResult, TError = unknown> {
   reset: () => void
 }
 
+export type KeyedMutationResultPair<TResult, TError, TVariables, TSnapshot> = [
+  MutateFunction<TResult, TError, TVariables, TSnapshot>,
+  KeyedMutationResult<TResult, TError>
+]
+
+export interface KeyedMutationResult<TResult, TError = unknown> {
+  keyed: {[key: string]: {
+      status: QueryStatus
+      data: TResult | undefined
+      error: TError | null
+      isIdle: boolean
+      isLoading: boolean
+      isSuccess: boolean
+      isError: boolean
+    }}
+  reset: (_key: string) => void
+}
+
 export interface ReactQueryConfig<TResult = unknown, TError = unknown> {
   queries?: ReactQueryQueriesConfig<TResult, TError>
   shared?: ReactQuerySharedConfig
